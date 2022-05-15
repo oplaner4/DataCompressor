@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "DataCompressor_Compress": {
+      "commandName": "Project",
+      "commandLineArgs": "compress ../../../../DataCompressor.Test/Data/DirToCompress"
+    },
+    "DataCompressor_Decompress": {
+      "commandName": "Project",
+      "commandLineArgs": "decompress ../../../../DataCompressor.Test/Data/DirToCompress.dc ../../../../DataCompressor.Test/Data/ReconstructedFromProgram"
+    }
+  }
+}
