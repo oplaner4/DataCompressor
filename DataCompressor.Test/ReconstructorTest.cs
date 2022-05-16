@@ -7,10 +7,10 @@ namespace DataCompressor.Test
     public class ReconstructorTest
     {
         [Fact]
-        public async Task ReconstructWholeIntoSameDir_ShouldSucceed()
+        public async Task ReconstructIntoSameDir_ShouldSucceed()
         {
             string subdirectoryName =
-                $"{TestData.DataDir}/ReconstructedWhole";
+                $"{TestData.DataDir}/Reconstructed_DirToCompress";
             Directory.CreateDirectory(subdirectoryName);
 
             string outputFileName =
@@ -24,55 +24,21 @@ namespace DataCompressor.Test
             Reconstructor reconstructor = new(outputFileName);
             await reconstructor.Decompress();
 
-            foreach (string entry in Directory.EnumerateFileSystemEntries(
-                TestData.DirToCompress,
-                "*",
-                new EnumerationOptions() { RecurseSubdirectories = true }
-            ))
-            {
-                string relEntry = Path.GetRelativePath(
-                    TestData.DirToCompress, entry);
-                string outputEntry = $"{subdirectoryName}/{relEntry}";
-                Assert.True(File.Exists(outputEntry) ||
-                    Directory.Exists(outputEntry));
-            }
+            await VerifySameDirectories(TestData.DirToCompress, subdirectoryName);
 
             Directory.Delete(subdirectoryName, true);
         }
 
-        [Theory]
-        [InlineData("DirToCompress/Empty")]
-        [InlineData("DirToCompress/Media")]
-        [InlineData("DirToCompress/Media/Interesting")]
-        [InlineData("DirToCompress")]
-        [InlineData("Basic")]
-        [InlineData("ManyRepeatingChars")]
-        public async Task Reconstruct_ShouldSucceed(
-            string dirName)
+        private async Task VerifySameDirectories(
+            string firstDirName, string secondDirName)
         {
-            string fullDirName = $"{TestData.DataDir}/{dirName}";
-            string outputFileName =
-                $"{TestData.DataDir}/{dirName.Replace('/', '_')}{Settings.OutputFileExtension}";
-            Creator creator = new(fullDirName, outputFileName);
-            await creator.Compress();
-            Assert.True(File.Exists(outputFileName));
-
-            string outputDirName =
-                $"{TestData.DataDir}/Reconstructed{dirName.Replace('/', '_')}";
-            Directory.CreateDirectory(outputDirName);
-
-            Reconstructor reconstructor =
-                new(outputFileName, outputDirName);
-            await reconstructor.Decompress();
-
             foreach (string entry in Directory.EnumerateFileSystemEntries(
-                fullDirName, "*",
-                new EnumerationOptions() { RecurseSubdirectories = true }
-            ))
+                    firstDirName, "*",
+                    new EnumerationOptions() { RecurseSubdirectories = true }
+                ))
             {
-                string relEntry = Path.GetRelativePath(
-                    fullDirName, entry);
-                string outputEntry = $"{outputDirName}/{relEntry}";
+                string relEntry = Path.GetRelativePath(firstDirName, entry);
+                string outputEntry = $"{secondDirName}/{relEntry}";
 
                 if (File.Exists(outputEntry))
                 {
@@ -86,9 +52,39 @@ namespace DataCompressor.Test
 
                 Assert.True(Directory.Exists(outputEntry));
             }
+        }
 
-            Directory.Delete(outputDirName, true);
-            File.Delete(outputFileName);
+        [Fact]
+        public async Task Reconstruct_ShouldSucceed()
+        {
+            foreach (string dirName in
+                Directory.EnumerateDirectories(TestData.DirToCompress, "*",
+                    new EnumerationOptions() { RecurseSubdirectories = true }
+                )
+            )
+            {
+                string relDirName = Path.GetRelativePath(TestData.DataDir, dirName);
+                string outputFileName =
+                    $"{TestData.DataDir}/{relDirName.Replace('\\', '_')}" +
+                    $"{Settings.OutputFileExtension}";
+
+                Creator creator = new(dirName, outputFileName);
+                await creator.Compress();
+                Assert.True(File.Exists(outputFileName));
+
+                string outputDirName =
+                    $"{TestData.DataDir}/Reconstructed_{relDirName.Replace('\\', '_')}";
+                Directory.CreateDirectory(outputDirName);
+
+                Reconstructor reconstructor =
+                    new(outputFileName, outputDirName);
+                await reconstructor.Decompress();
+
+                await VerifySameDirectories(dirName, outputDirName);
+
+                Directory.Delete(outputDirName, true);
+                File.Delete(outputFileName);
+            }
         }
     }
 }

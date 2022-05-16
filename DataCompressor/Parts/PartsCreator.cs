@@ -1,4 +1,4 @@
-﻿using DataCompressor.Helpers;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,8 +8,8 @@ namespace DataCompressor.Parts
 {
     public class PartsCreator
     {
-        private readonly Dictionary<string, ulong> FilesAndIndices;
-        private readonly Dictionary<string, ulong> DirsAndIndices;
+        private readonly List<(string, ulong)> FilesAndIndices;
+        private readonly List<(string, ulong)> DirsAndIndices;
 
         private readonly List<NodePart> FileNodes;
         private readonly List<NodePart> DirNodes;
@@ -47,7 +47,7 @@ namespace DataCompressor.Parts
         }
 
         private async Task LookupRec(string dirName,
-            ulong parentIndex)
+            ulong? parentIndex)
         {
             foreach (string entry in Directory
                 .EnumerateFileSystemEntries(dirName))
@@ -55,16 +55,30 @@ namespace DataCompressor.Parts
                 if (File.Exists(entry))
                 {
                     string fileName = new FileInfo(entry).Name;
-                    FilesAndIndices.Add(fileName, parentIndex);
+                    if (parentIndex.HasValue) {
+                        FilesAndIndices.Add(
+                            (fileName, parentIndex.Value));
+                    }
+                    else
+                    {
+                        ulong fileIndex = (ulong)FilesAndIndices.LongCount();
+                        FilesAndIndices.Add((fileName, fileIndex));
+                        RootFilesIndices.Add(fileIndex);
+                    }
 
                     byte[] data = await File.ReadAllBytesAsync(entry);
                     FilesData.Add(data);
                     continue;
                 }
 
-                await LookupRec(entry, (ulong)DirsAndIndices.LongCount());
-                string entryName = new DirectoryInfo(entry).Name;
-                DirsAndIndices.Add(entryName, parentIndex);
+                ulong dirsCount = (ulong)DirsAndIndices.LongCount();
+
+                DirsAndIndices.Add((
+                    new DirectoryInfo(entry).Name,
+                    parentIndex.HasValue ?
+                        parentIndex.Value : dirsCount));
+
+                await LookupRec(entry, dirsCount);
             }
         }
 
@@ -98,36 +112,12 @@ namespace DataCompressor.Parts
             return true;
         }
 
-        private async Task PrepareRootEntry(string entry)
-        {
-            if (Modes.IsOn(Mode.FileTreeMode)
-                && Directory.Exists(entry))
-            {
-                string entryName = new DirectoryInfo(entry).Name;
-                ulong dirsCount = (ulong)DirsAndIndices.LongCount();
-
-                DirsAndIndices.Add(entryName, dirsCount);
-                await LookupRec(entry, dirsCount);
-                return;
-            }
-
-            
-            string fileName = new FileInfo(entry).Name;
-
-            ulong fileIndex = (ulong)FilesAndIndices.LongCount();
-            FilesAndIndices.Add(fileName, fileIndex);
-            RootFilesIndices.Add(fileIndex);
-
-            byte[] data = await File.ReadAllBytesAsync(entry);
-            FilesData.Add(data);
-        }
-
         private bool PrepareSetNodes()
         {
-            foreach (KeyValuePair<string, ulong> pair in FilesAndIndices)
+            foreach ((string fileName, ulong parentIndex) in FilesAndIndices)
             {
-                NodePart node = new(pair.Key, Modes, pair.Value);
-                if (!node.SetParentIndex(pair.Value))
+                NodePart node = new(fileName, Modes);
+                if (!node.SetParentIndex(parentIndex))
                 {
                     FileNodes.Clear();
                     return false;
@@ -136,10 +126,10 @@ namespace DataCompressor.Parts
                 FileNodes.Add(node);
             }
 
-            foreach (KeyValuePair<string, ulong> pair in DirsAndIndices)
+            foreach ((string dirName, ulong parentIndex) in DirsAndIndices)
             {
-                NodePart node = new(pair.Key, Modes, pair.Value);
-                if (!node.SetParentIndex(pair.Value))
+                NodePart node = new(dirName, Modes);
+                if (!node.SetParentIndex(parentIndex))
                 {
                     FileNodes.Clear();
                     DirNodes.Clear();
@@ -177,11 +167,7 @@ namespace DataCompressor.Parts
                 Modes.SetOn(Mode.FileTreeMode);
             }
 
-            foreach (string entry in Directory
-                .EnumerateFileSystemEntries(DirName))
-            {
-                await PrepareRootEntry(entry);
-            }
+            await LookupRec(DirName, null);
 
             if (!Modes.ChooseIntegerModes(
                 Mode.NodesShortMode, Mode.NodesIntMode,

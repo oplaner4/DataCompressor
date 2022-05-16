@@ -10,21 +10,28 @@ namespace DataCompressor.Test
         public async Task CreateEmpty_ShouldSucceed()
         {
             string outputFileName =
-                $"{TestData.DataDir}/CreateEmpty{Settings.OutputFileExtension}";
-            Creator creator = new(
-                $"{TestData.DirToCompress}/Empty", outputFileName);
+                $"{TestData.DataDir}/CreatorEmpty{Settings.OutputFileExtension}";
+
+            string emptyDirName =
+                $"{TestData.DataDir}/CreatorEmpty";
+            Directory.CreateDirectory(emptyDirName);
+
+            Creator creator = new(emptyDirName, outputFileName);
             await creator.Compress();
+
             Assert.True(File.Exists(outputFileName));
             File.Delete(outputFileName);
+            Directory.Delete(emptyDirName);
         }
 
         [Fact]
         public async Task CreateWholeToSameDir_ShouldSucceed()
         {
-            string outputFileName =
-                $"{TestData.DataDir}/DirToCompress{Settings.OutputFileExtension}";
             Creator creator = new(TestData.DirToCompress);
             await creator.Compress();
+
+            string outputFileName =
+                $"{TestData.DirToCompress}{Settings.OutputFileExtension}";
             Assert.True(File.Exists(outputFileName));
             File.Delete(outputFileName);
         }
@@ -33,19 +40,8 @@ namespace DataCompressor.Test
         public async Task CreateWhole_ShouldSucceed()
         {
             string outputFileName =
-                $"{TestData.DataDir}/DirToCompress{Settings.OutputFileExtension}";
+                $"{TestData.DirToCompress}{Settings.OutputFileExtension}";
             Creator creator = new(TestData.DirToCompress, outputFileName);
-            await creator.Compress();
-            Assert.True(File.Exists(outputFileName));
-            File.Delete(outputFileName);
-        }
-
-        [Fact]
-        public async Task CreateManyRepeatingChars_ShouldSucceed()
-        {
-            string outputFileName =
-                $"{TestData.DataDir}/ManyRepeatingChars{Settings.OutputFileExtension}";
-            Creator creator = new($"{TestData.DataDir}/ManyRepeatingChars", outputFileName);
             await creator.Compress();
             Assert.True(File.Exists(outputFileName));
             File.Delete(outputFileName);

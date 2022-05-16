@@ -41,13 +41,12 @@ namespace DataCompressor.Helpers
 
             foreach (NodePart nodePart in Nodes)
             {
-                ulong parentIndexValue = nodePart.ParentIndex.Get();
-
                 bool isRootChild = parentIndex == null &&
-                    nodeIndex == parentIndexValue;
+                    nodeIndex == nodePart.ParentIndex.Value;
 
-                bool isChild = nodeIndex != parentIndexValue
-                    && parentIndex == parentIndexValue;
+                bool isChild =
+                    nodeIndex != nodePart.ParentIndex.Value
+                    && parentIndex == nodePart.ParentIndex.Value;
 
                 if (isRootChild || isChild)
                 {
