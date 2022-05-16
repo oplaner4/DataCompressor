@@ -1,7 +1,6 @@
 ﻿using DataCompressor.Exceptions;
 using DataCompressor.Helpers;
 using DataCompressor.Parts;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;

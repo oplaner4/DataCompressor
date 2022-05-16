@@ -103,7 +103,8 @@ namespace DataCompressor.Parts
             {
                 byte fragment = enumerator.Current;
                 bytesWithoutCount.Add(fragment);
-                if (++count > maxCount) {
+                if (++count > maxCount)
+                {
                     return false;
                 }
 
@@ -117,7 +118,8 @@ namespace DataCompressor.Parts
 
                     while (anotherBytes && enumerator.Current == fragment)
                     {
-                        if (++repeatValue > maxRepeatValue) {
+                        if (++repeatValue > maxRepeatValue)
+                        {
                             return false;
                         }
                         anotherBytes = enumerator.MoveNext();

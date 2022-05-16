@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -55,7 +54,8 @@ namespace DataCompressor.Parts
                 if (File.Exists(entry))
                 {
                     string fileName = new FileInfo(entry).Name;
-                    if (parentIndex.HasValue) {
+                    if (parentIndex.HasValue)
+                    {
                         FilesAndIndices.Add(
                             (fileName, parentIndex.Value));
                     }
@@ -104,7 +104,8 @@ namespace DataCompressor.Parts
             IEnumerator<NodePart> dirsEnumerator = DirNodes.GetEnumerator();
             while (dirsEnumerator.MoveNext())
             {
-                if (!dirsEnumerator.Current.ParentIndex.Add(filesCount)) {
+                if (!dirsEnumerator.Current.ParentIndex.Add(filesCount))
+                {
                     return false;
                 }
             }
